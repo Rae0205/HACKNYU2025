@@ -15,12 +15,17 @@ nltk.download('punkt')
 # ✅ Set Streamlit page config at the very top
 st.set_page_config(page_title="AI Medical Translator", layout="wide")
 
-# ✅ Load Whisper model (forcing CPU mode to avoid FP16 issues)
-loading_message = st.empty()
-loading_message.write("Loading model... Please wait.")
-model = whisper.load_model("base", device="cpu")
-loading_message.empty()  # Erase the loading message
-st.success("Model loaded successfully!")
+# Add error handling for model loading
+try:
+    # ✅ Load Whisper model (forcing CPU mode to avoid FP16 issues)
+    loading_message = st.empty()
+    loading_message.write("Loading model... Please wait.")
+    model = whisper.load_model("base", device="cpu")
+    loading_message.empty()  # Erase the loading message
+    st.success("Model loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading Whisper model: {str(e)}")
+    st.stop()
 
 # ✅ Hardcoded OpenAI API Key (Replace with your actual API key)
 openai_api_key = os.getenv("OPENAI_API_KEY")
