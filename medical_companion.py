@@ -88,7 +88,13 @@ if audio_file:
 
             for segment in segments:
                 speaker_label = "Doctor" if doctor_speaking else "Patient"
-                formatted_transcript += f"{speaker_label}: {segment.text}\n"
+                # Clean up the text by removing "Doctor:" and "Patient:" from the beginning
+                cleaned_text = segment.text
+                cleaned_text = cleaned_text.replace("Doctor:", "").replace("Patient:", "")
+                cleaned_text = cleaned_text.replace("Doctor,", "").replace("Patient,", "")
+                cleaned_text = cleaned_text.strip()
+                
+                formatted_transcript += f"{speaker_label}: {cleaned_text}\n"
                 doctor_speaking = not doctor_speaking  # Toggle speaker
 
             st.subheader("📄 Transcribed Conversation (Speaker-Separated)")
