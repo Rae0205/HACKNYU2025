@@ -31,6 +31,10 @@ client = OpenAI(api_key=openai_api_key)
 # ✅ Initialize Translator
 translator = Translator()
 
+# ✅ Initialize variables at the top level
+formatted_transcript = ""
+summary = ""
+
 # ✅ Streamlit UI
 st.title("🩺 AI-Powered Medical Transcription & Translation")
 
@@ -79,52 +83,55 @@ if audio_file:
 
             st.subheader("📄 Transcribed Conversation (Speaker-Separated)")
             st.text_area("Doctor-Patient Conversation", formatted_transcript, height=200)
+
+            # Only proceed with summary generation if we have a transcript
+            if formatted_transcript:
+                # ✅ Choose target language for report
+                st.subheader("🌍 Choose Report Language")
+                target_language = st.selectbox("Select language", ["English", "Chinese", "Spanish", "French"])
+
+                # ✅ AI-Powered Doctor's Report Directly in Chosen Language
+                st.subheader(f"📑 AI-Generated Patient Visit Report ({target_language})")
+
+                try:
+                    summary_prompt = f"""
+                    From the following doctor-patient conversation, extract and summarize:
+                    - The doctor's **diagnosis** for the patient.
+                    - Any **medical advice, prescriptions, or lifestyle recommendations** the doctor gives.
+                    - Present the summary in a clear and structured format like a **medical visit report**.
+
+                    Here is the conversation:
+                    {formatted_transcript}
+
+                    Format the response as:
+                    ---
+                    **📝 Patient Visit Report**
+                    **🩺 Diagnosis:** [Doctor's diagnosis]
+                    **💊 Recommended Treatment:** [Prescriptions or medical treatment]
+                    **🍏 Lifestyle & Health Tips:** [Doctor's advice to improve health]
+                    ---
+                    
+                    The report should be in {target_language}.
+                    """
+
+                    response = client.chat.completions.create(
+                        model="gpt-4-turbo-preview",  # Updated model name from gpt-4o-mini
+                        messages=[
+                            {"role": "system", "content": "You are a medical assistant summarizing doctor-patient conversations."},
+                            {"role": "user", "content": summary_prompt}
+                        ]
+                    )
+                    summary = response.choices[0].message.content
+
+                    st.markdown(f"📄 **Patient Visit Report in {target_language}**\n")
+                    st.markdown(summary)
+
+                except Exception as e:
+                    st.error(f"Summary generation error: {str(e)}")
+
         except Exception as e:
             st.error(f"Error during transcription: {str(e)}")
-
-    # ✅ Choose target language for report
-    st.subheader("🌍 Choose Report Language")
-    target_language = st.selectbox("Select language", ["English", "Chinese", "Spanish", "French"])
-
-    # ✅ AI-Powered Doctor's Report Directly in Chosen Language
-    st.subheader(f"📑 AI-Generated Patient Visit Report ({target_language})")
-    summary = ""  # ✅ Initialize summary to avoid errors
-
-    try:
-        summary_prompt = f"""
-        From the following doctor-patient conversation, extract and summarize:
-        - The doctor's **diagnosis** for the patient.
-        - Any **medical advice, prescriptions, or lifestyle recommendations** the doctor gives.
-        - Present the summary in a clear and structured format like a **medical visit report**.
-
-        Here is the conversation:
-        {formatted_transcript}
-
-        Format the response as:
-        ---
-        **📝 Patient Visit Report**
-        **🩺 Diagnosis:** [Doctor's diagnosis]
-        **💊 Recommended Treatment:** [Prescriptions or medical treatment]
-        **🍏 Lifestyle & Health Tips:** [Doctor's advice to improve health]
-        ---
-        
-        The report should be in {target_language}.
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a medical assistant summarizing doctor-patient conversations."},
-                {"role": "user", "content": summary_prompt}
-            ]
-        )
-        summary = response.choices[0].message.content
-
-        st.markdown(f"📄 **Patient Visit Report in {target_language}**\n")
-        st.markdown(summary)
-
-    except Exception as e:
-        st.error(f"Summary generation error: {str(e)}")
+            formatted_transcript = ""  # Reset on error
 
     # ✅ AI-Generated Key Medical Term Explanations in User's Language
     st.subheader(f"🔍 Key Medical Terms & Explanations ({target_language})")
