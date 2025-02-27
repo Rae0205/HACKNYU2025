@@ -1,12 +1,14 @@
 import streamlit as st
 import whisper
-import asyncio
 from googletrans import Translator
 from openai import OpenAI
 import os
 import nltk
 from nltk.tokenize import word_tokenize
 from dotenv import load_dotenv
+import torch
+
+torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)] 
 
 load_dotenv()
 
