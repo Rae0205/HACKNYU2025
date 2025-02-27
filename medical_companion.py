@@ -1,14 +1,10 @@
 import streamlit as st
-import whisper
 from googletrans import Translator
 from openai import OpenAI
 import os
 import nltk
 from nltk.tokenize import word_tokenize
 from dotenv import load_dotenv
-import torch
-
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)] 
 
 load_dotenv()
 
@@ -16,18 +12,6 @@ nltk.download('punkt')
 
 # ✅ Set Streamlit page config at the very top
 st.set_page_config(page_title="AI Medical Translator", layout="wide")
-
-# Add error handling for model loading
-try:
-    # ✅ Load Whisper model (forcing CPU mode to avoid FP16 issues)
-    loading_message = st.empty()
-    loading_message.write("Loading model... Please wait.")
-    model = whisper.load_model("base", device="cpu")
-    loading_message.empty()  # Erase the loading message
-    st.success("Model loaded successfully!")
-except Exception as e:
-    st.error(f"Error loading Whisper model: {str(e)}")
-    st.stop()
 
 # ✅ Hardcoded OpenAI API Key (Replace with your actual API key)
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -61,6 +45,16 @@ else:
     audio_file = st.file_uploader("Upload an MP3/WAV file", type=["mp3", "wav"])
 
 if audio_file:
+    # Check file size
+    if isinstance(audio_file, str):
+        file_size = os.path.getsize(audio_file)
+    else:
+        file_size = audio_file.size
+        
+    if file_size > 25 * 1024 * 1024:  # 25MB in bytes
+        st.error("File size exceeds 25MB limit. Please upload a smaller file.")
+        st.stop()
+        
     # For uploaded files, save to temporary location
     if isinstance(audio_file, str):
         temp_audio_path = audio_file  # Using direct path for example files
@@ -72,20 +66,29 @@ if audio_file:
 
     st.success(f"✅ Audio file selected: {audio_file if isinstance(audio_file, str) else audio_file.name}")
 
+    # Add an audio player
+    st.audio(audio_file)
+
     # ✅ Transcribe the audio & detect speakers
     with st.spinner("Transcribing... This may take a few seconds."):
         try:
-            result = model.transcribe(temp_audio_path, word_timestamps=True)
-            transcript = result["text"]
+            with open(temp_audio_path, "rb") as audio_file:
+                result = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="verbose_json"
+                )
+            
+            transcript = result.text
 
-            # ✅ Apply basic speaker detection (Doctor vs. Patient)
-            words = result["segments"]
+            # Simulate speaker detection (since Whisper API doesn't provide speaker detection)
+            segments = result.segments
             doctor_speaking = True  # Start with doctor
             formatted_transcript = ""
 
-            for segment in words:
+            for segment in segments:
                 speaker_label = "Doctor" if doctor_speaking else "Patient"
-                formatted_transcript += f"{speaker_label}: {segment['text']}\n"
+                formatted_transcript += f"{speaker_label}: {segment.text}\n"
                 doctor_speaking = not doctor_speaking  # Toggle speaker
 
             st.subheader("📄 Transcribed Conversation (Speaker-Separated)")
