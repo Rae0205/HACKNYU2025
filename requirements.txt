@@ -7,3 +7,5 @@ googletrans==4.0.2
 python-dotenv==1.0.1
 nltk==3.9.1
 ffmpeg-python
+openai-whisper==20240930
+python-dotenv==1.0.1
