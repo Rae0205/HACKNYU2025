@@ -5,6 +5,7 @@ import os
 import nltk
 from nltk.tokenize import word_tokenize
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -31,7 +32,9 @@ st.title("🩺 AI-Powered Medical Transcription & Translation")
 
 # ✅ Upload or select audio file
 st.subheader("1️⃣ Choose or Upload a Doctor-Patient Conversation Audio File")
+st.info("🔹 Choose or upload a doctor-patient conversation audio file to get a transcription, AI visit summary in your chosen language, and key medical term explanations.")
 audio_source = st.radio("Select audio source", ["Choose from examples", "Upload your own"])
+
 
 if audio_source == "Choose from examples":
     audio_file_name = st.selectbox(
@@ -90,12 +93,18 @@ if audio_file:
                 speaker_label = "Doctor" if doctor_speaking else "Patient"
                 # Clean up the text by removing "Doctor:" and "Patient:" from the beginning
                 cleaned_text = segment.text
-                cleaned_text = cleaned_text.replace("Doctor:", "").replace("Patient:", "")
-                cleaned_text = cleaned_text.replace("Doctor,", "").replace("Patient,", "")
+                cleaned_text = cleaned_text.replace("Doctor,", "Doctor:").replace("Patient,", "Patient:")
                 cleaned_text = cleaned_text.strip()
                 
-                formatted_transcript += f"{speaker_label}: {cleaned_text}\n"
-                doctor_speaking = not doctor_speaking  # Toggle speaker
+                formatted_transcript += f"{cleaned_text} "
+                doctor_speaking = not doctor_speaking
+            
+            # Make sure every instance of "Doctor:" and "Patient:" starts on a new line
+            formatted_transcript = re.sub(r'([^\n])(Doctor:|Patient:)', r'\1\n\2', formatted_transcript)
+            # Handle case where "Doctor:" or "Patient:" is at the start of the text
+            formatted_transcript = re.sub(r'^(Doctor:|Patient:)', r'\1', formatted_transcript)
+            # Remove any potential double newlines
+            formatted_transcript = re.sub(r'\n\s*\n', '\n', formatted_transcript)
 
             st.subheader("📄 Transcribed Conversation (Speaker-Separated)")
             st.text_area("Doctor-Patient Conversation", formatted_transcript, height=200)
@@ -181,5 +190,3 @@ if audio_file:
     if summary:
         st.subheader("📥 Download Your Medical Summary")
         st.download_button(label="Download Report", data=summary, file_name="patient_visit_report.txt", mime="text/plain")
-
-st.info("🔹 Upload a doctor-patient conversation audio file to get a transcription, AI visit summary in your chosen language, and key medical term explanations.")
